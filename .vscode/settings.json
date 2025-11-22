@@ -1,0 +1,4 @@
+{
+    "cmake.sourceDirectory": "/home/sator/ros2_program/ros2_ws/anomaly_explorer/src/anomaly_explorer",
+    "C_Cpp.errorSquiggles": "enabled"
+}
