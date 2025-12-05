@@ -1,4 +1,11 @@
 {
     "cmake.sourceDirectory": "/home/sator/ros2_program/ros2_ws/anomaly_explorer/src/anomaly_explorer",
-    "C_Cpp.errorSquiggles": "enabled"
+    "C_Cpp.errorSquiggles": "enabled",
+    "python-envs.defaultEnvManager": "ms-python.python:system",
+    "python-envs.pythonProjects": [],
+    "python.analysis.extraPaths": [
+        "/opt/ros/jazzy/lib/python3.12/site-packages"
+    ],
+    "editor.formatOnSave": true,
+    "editor.defaultFormatter": "ms-python.python"
 }
