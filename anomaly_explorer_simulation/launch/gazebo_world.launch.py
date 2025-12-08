@@ -34,16 +34,20 @@ ARGUMENTS = [
                           description='use_sim_time'),
     DeclareLaunchArgument('world', default_value='labyrinth_small',
                           description='Simulation World'),
+    DeclareLaunchArgument('params_file',
+                          default_value=PathJoinSubstitution([
+                              get_package_share_directory('turtlebot4_navigation'),
+                              'config',
+                              'nav2.yaml'
+                              ]))
 ]
 
 
 def generate_launch_description():
 
     # Directories
-    pkg_anomaly_explorer_sim = get_package_share_directory(
-        'anomaly_explorer_simulation')
-    pkg_ros_gz_sim = get_package_share_directory(
-        'ros_gz_sim')
+    pkg_anomaly_explorer_sim = get_package_share_directory('anomaly_explorer_simulation')
+    pkg_ros_gz_sim = get_package_share_directory('ros_gz_sim')
 
     # Set Gazebo resource path
     gz_resource_path = SetEnvironmentVariable(
@@ -57,8 +61,8 @@ def generate_launch_description():
     )
 
     # Paths
-    gz_sim_launch = PathJoinSubstitution(
-        [pkg_ros_gz_sim, 'launch', 'gz_sim.launch.py'])
+    gz_sim_launch = PathJoinSubstitution([pkg_ros_gz_sim, 'launch', 'gz_sim.launch.py'])
+    nav2_params = LaunchConfiguration('params_file')
 
     # Gazebo harmonic
     gazebo = IncludeLaunchDescription(
@@ -80,16 +84,49 @@ def generate_launch_description():
     )
 
     # Clock bridge
-    clock_bridge = Node(package='ros_gz_bridge', executable='parameter_bridge',
-                        name='clock_bridge',
-                        output='screen',
-                        arguments=[
-                            '/clock' + '@rosgraph_msgs/msg/Clock' + '[gz.msgs.Clock'
-                        ])
+    clock_bridge = Node(
+        package='ros_gz_bridge', executable='parameter_bridge',
+        name='clock_bridge',
+        output='screen',
+        arguments=[
+            '/clock' + '@rosgraph_msgs/msg/Clock' + '[gz.msgs.Clock'
+        ]
+    )
 
-    # Create launch description and add actions
+
+    planner_cmd = Node(
+        package='nav2_planner',
+        executable='planner_server',
+        name='planner_server',
+        output='screen',
+        parameters=[nav2_params]
+    )
+
+    controller_cmd = Node(
+        package='nav2_controller',
+        executable='controller_server',
+        name='controller_server',
+        output='screen',
+        parameters=[nav2_params]
+    )
+
+    bt_navigator_cmd = Node(
+        package='nav2_bt_navigator',
+        executable='bt_navigator',
+        name='bt_navigator',
+        output='screen',
+        parameters=[nav2_params]
+    )
+
+
     ld = LaunchDescription(ARGUMENTS)
+
     ld.add_action(gz_resource_path)
     ld.add_action(gazebo)
     ld.add_action(clock_bridge)
+
+    # ld.add_action(planner_cmd)
+    # ld.add_action(controller_cmd)
+    # ld.add_action(bt_navigator_cmd)
+
     return ld

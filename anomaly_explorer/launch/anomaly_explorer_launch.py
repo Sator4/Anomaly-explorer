@@ -17,7 +17,7 @@ import os
 from ament_index_python.packages import get_package_share_directory
 
 from launch import LaunchDescription
-from launch.actions import IncludeLaunchDescription
+from launch.actions import IncludeLaunchDescription, TimerAction
 from launch.launch_description_sources import PythonLaunchDescriptionSource
 from launch_ros.actions import Node
 from launch.substitutions import PathJoinSubstitution
@@ -38,38 +38,44 @@ def generate_launch_description():
 
 
     # Launch configurations
-    plansys2_cmd = IncludeLaunchDescription(
+    plansys2_cmd = TimerAction(period=3.0, actions=[IncludeLaunchDescription(
         PythonLaunchDescriptionSource(plansys2_path),
-        launch_arguments={'model_file': anomaly_explorer_dir + '/pddl/domain.pddl'}.items()
-    )
+        launch_arguments=[
+            ('model_file', anomaly_explorer_dir + '/pddl/domain.pddl'),
+            ('emulate_tty', 'true')]
+    )])
     
     simulation_cmd = IncludeLaunchDescription(
         PythonLaunchDescriptionSource(simulation_path)
     )
 
-    explore_cmd = Node(
-        package='anomaly_explorer_py',
-        executable='explore_action_node.py',
-        name='explore_action_node',
-        output='screen',
-        parameters=[])
+    explore_cmd = TimerAction(period=5.0, actions=[
+        Node(
+            package='anomaly_explorer_py',
+            executable='explore_action_node.py',
+            name='explore_action_node',
+            emulate_tty='true',
+            output='screen',
+            parameters=[])
+    ])
 
-    investigate_cmd = Node(
-        package='anomaly_explorer_py',
-        executable='investigate_action_node.py',
-        name='investigate_action_node',
-        output='screen',
-        parameters=[])
+    investigate_cmd = TimerAction(period=5.0, actions=[
+        Node(
+            package='anomaly_explorer_py',
+            executable='investigate_action_node.py',
+            name='investigate_action_node',
+            emulate_tty='true',
+            output='screen',
+            parameters=[])
+    ])
 
 
-    # Create the launch description and populate
     ld = LaunchDescription()
 
-    # Declare the launch options
     ld.add_action(plansys2_cmd)
     ld.add_action(simulation_cmd)
 
     ld.add_action(explore_cmd)
     ld.add_action(investigate_cmd)
-
+    
     return ld

@@ -1,3 +1,6 @@
 .cache
 build
+install
+log
+files
 # .clang-format

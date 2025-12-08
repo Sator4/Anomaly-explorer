@@ -14,7 +14,6 @@
 
 #include <memory>
 #include <string>
-#include <map>
 
 #include "plansys2_msgs/msg/action_execution_info.hpp"
 #include "plansys2_pddl_parser/Utils.hpp"
@@ -62,7 +61,6 @@ public:
 		} break;
 
 		case PLANNING: {
-			last_message.clear();
 			auto domain = domain_expert_->getDomain();
 			auto problem = problem_expert_->getProblem();
 			auto plan = planner_client_->getPlan(domain, problem);
@@ -83,14 +81,7 @@ public:
 			for (const auto& feedback : feedback.action_execution_status) {
 				// std::cout << feedback.action << " <" << std::to_string(feedback.status) << "> " << feedback.completion * 100.0 << "% | ";
 				if (feedback.status == ActionExecutionInfo::EXECUTING) {
-					// std::cout << last_message[feedback.action] << " | " << feedback.completion << std::endl;
-					if (
-						last_message.find(feedback.action) == last_message.end() || 
-						last_message[feedback.action] != feedback.completion
-					){
-						last_message[feedback.action] = feedback.completion;
-						std::cout << feedback.action << " " << feedback.completion * 100.0 << "%" << std::endl;
-					}
+					std::cout << feedback.action << " " << feedback.completion * 100.0 << "%" << std::endl;
 					if (feedback.action == "explore" && feedback.message_status == ExplorationStatus::ANOMALY_FOUND) {
 						std::cout << "Anomaly found" << std::endl;
 						executor_client_->cancel_plan_execution();
@@ -124,8 +115,6 @@ private:
 	std::shared_ptr<plansys2::PlannerClient> planner_client_;
 	std::shared_ptr<plansys2::ProblemExpertClient> problem_expert_;
 	std::shared_ptr<plansys2::ExecutorClient> executor_client_;
-
-	std::map<std::string, double> last_message;
 };
 
 int main(int argc, char** argv)
@@ -137,7 +126,7 @@ int main(int argc, char** argv)
 
 	node->init();
 
-	rclcpp::Rate rate(10);
+	rclcpp::Rate rate(5);
 	while (rclcpp::ok()) {
 		node->step();
 

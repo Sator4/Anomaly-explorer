@@ -24,7 +24,8 @@ from launch import LaunchDescription
 from launch.actions import DeclareLaunchArgument, GroupAction, IncludeLaunchDescription
 from launch.conditions import IfCondition
 from launch.launch_description_sources import PythonLaunchDescriptionSource
-from launch.substitutions import LaunchConfiguration, PathJoinSubstitution
+from launch.substitutions import LaunchConfiguration, PathJoinSubstitution, Command
+from launch_ros.parameter_descriptions import ParameterValue
 
 from launch_ros.actions import Node, PushRosNamespace
 
@@ -41,6 +42,12 @@ ARGUMENTS = [
     DeclareLaunchArgument('y', default_value='0.0'),
     DeclareLaunchArgument('z', default_value='0.001'),
     DeclareLaunchArgument('yaw', default_value='0.0'),
+    DeclareLaunchArgument('params_file',
+                          default_value=PathJoinSubstitution([
+                              get_package_share_directory('turtlebot4_navigation'),
+                              'config',
+                              'nav2.yaml'
+                              ]))
 ]
 
 
@@ -78,12 +85,14 @@ def generate_launch_description():
         [pkg_turtlebot4_navigation, 'launch', 'slam.launch.py'])
     nav2_launch = PathJoinSubstitution(
         [pkg_turtlebot4_navigation, 'launch', 'nav2.launch.py'])
+    xacro_file = PathJoinSubstitution([pkg_turtlebot4_description, 'urdf', LaunchConfiguration('model'), 'turtlebot4.urdf.xacro'])
 
     # Launch configurations
     namespace = LaunchConfiguration('namespace')
     use_sim_time = LaunchConfiguration('use_sim_time')
     x, y, z = LaunchConfiguration('x'), LaunchConfiguration('y'), LaunchConfiguration('z')
     yaw = LaunchConfiguration('yaw')
+    nav2_params = LaunchConfiguration('params_file')
 
     robot_name = GetNamespacedName(namespace, 'turtlebot4')
     
@@ -92,10 +101,48 @@ def generate_launch_description():
         PushRosNamespace(namespace),
 
         # Robot description
-        IncludeLaunchDescription(
-            PythonLaunchDescriptionSource([robot_description_launch]),
-            launch_arguments=[('model', LaunchConfiguration('model')),
-                              ('use_sim_time', LaunchConfiguration('use_sim_time'))]
+        Node(
+            package='robot_state_publisher',
+            executable='robot_state_publisher',
+            name='robot_state_publisher',
+            output='screen',
+            parameters=[
+                {'use_sim_time': LaunchConfiguration('use_sim_time')},
+                {'robot_description': ParameterValue(
+                    Command([
+                        'xacro', ' ', xacro_file, ' ',
+                        'gazebo:=ignition', ' ',
+                        'namespace:=', namespace]),
+                    value_type=str)},
+            ],
+            remappings=[
+                ('/tf', 'tf'),
+                ('/tf_static', 'tf_static')
+            ]
+        ),
+
+        Node(
+            package='robot_state_publisher',
+            executable='robot_state_publisher',
+            name='robot_state_publisher',
+            output='screen',
+            parameters=[
+                {'use_sim_time': use_sim_time},
+                {'robot_description': ParameterValue(
+                    Command([
+                        'xacro', ' ', xacro_file, ' ',
+                        'gazebo:=ignition', ' ',
+                        'namespace:=', namespace,
+                        # 'gazebo_controllers:=', PathJoinSubstitution(
+                        #     [get_package_share_directory('irobot_create_control'), 'config', 'control.yaml'])
+                    ]),
+                    value_type=str
+                )},
+            ],
+            remappings=[
+                ('/tf', 'tf'),
+                ('/tf_static', 'tf_static')
+            ]
         ),
 
         # Spawn TurtleBot 4
@@ -115,6 +162,7 @@ def generate_launch_description():
         IncludeLaunchDescription(
             PythonLaunchDescriptionSource([turtlebot4_ros_gz_bridge_launch]),
             launch_arguments=[
+                ('use_sim_time', use_sim_time),
                 ('model', LaunchConfiguration('model')),
                 ('robot_name', robot_name),
                 ('namespace', namespace)]
@@ -124,6 +172,7 @@ def generate_launch_description():
         IncludeLaunchDescription(
             PythonLaunchDescriptionSource([create3_nodes_launch]),
             launch_arguments=[
+                ('use_sim_time', use_sim_time),
                 ('namespace', namespace)
             ]
         ),
@@ -132,6 +181,7 @@ def generate_launch_description():
         IncludeLaunchDescription(
             PythonLaunchDescriptionSource([create3_gz_nodes_launch]),
             launch_arguments=[
+                ('use_sim_time', use_sim_time),
                 ('robot_name', robot_name),
             ]
         ),
@@ -177,7 +227,8 @@ def generate_launch_description():
         PythonLaunchDescriptionSource([nav2_launch]),
         launch_arguments=[
             ('namespace', namespace),
-            ('use_sim_time', use_sim_time)
+            ('use_sim_time', use_sim_time),
+            ('params_file', nav2_params)
         ],
         condition=IfCondition(LaunchConfiguration('nav2'))
     )
@@ -191,8 +242,9 @@ def generate_launch_description():
         condition=IfCondition(LaunchConfiguration('rviz')),
     )
 
-    # Define LaunchDescription variable
+
     ld = LaunchDescription(ARGUMENTS)
+
     ld.add_action(spawn_robot_group_action)
     ld.add_action(localization)
     ld.add_action(slam)

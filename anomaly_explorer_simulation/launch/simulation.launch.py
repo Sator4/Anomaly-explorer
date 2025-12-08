@@ -4,7 +4,8 @@ from launch import LaunchDescription
 from launch.actions import IncludeLaunchDescription, DeclareLaunchArgument
 from launch.launch_description_sources import PythonLaunchDescriptionSource
 from launch_ros.actions import Node
-from launch.substitutions import PathJoinSubstitution, LaunchConfiguration
+from launch.substitutions import PathJoinSubstitution, LaunchConfiguration, Command
+from launch_ros.descriptions import ParameterValue
 
 
 ARGUMENTS = [
@@ -21,34 +22,42 @@ ARGUMENTS = [
 
 
 def generate_launch_description():
+    # Directories
     pkg_anomaly_explorer_sim = get_package_share_directory('anomaly_explorer_simulation')
-    # pkg_turtlebot4_gz_bringup = get_package_share_directory('turtlebot4_gz_bringup')
+    pkg_turtlebot4_bringup = get_package_share_directory('turtlebot4_gz_bringup')
 
-    # ros_gz_sim_dir = get_package_share_directory('ros_gz_sim')
 
+    # Paths
     gazebo_launch = PathJoinSubstitution([pkg_anomaly_explorer_sim, 'launch', 'gazebo_world.launch.py'])
-    robot_spawn_launch = PathJoinSubstitution([pkg_anomaly_explorer_sim, 'launch', 'turtlebot4_spawn.launch.py'])
-    # robot_spawn_launch = PathJoinSubstitution([pkg_anomaly_explorer_sim, 'launch', 'turtlebot3_spawn.launch.py'])
+    # robot_spawn_launch = PathJoinSubstitution([pkg_anomaly_explorer_sim, 'launch', 'turtlebot4_spawn.launch.py']) # mine
+    robot_spawn_launch = PathJoinSubstitution([pkg_turtlebot4_bringup, 'launch', 'turtlebot4_spawn.launch.py'])
+    nav2_params = PathJoinSubstitution([pkg_anomaly_explorer_sim, 'config', 'nav2_params.yaml'])
 
 
     gazebo = IncludeLaunchDescription(
         PythonLaunchDescriptionSource([gazebo_launch]),
         launch_arguments=[
-            ('world', LaunchConfiguration('world'))
+            ('world', LaunchConfiguration('world')),
+            ('emulate_tty', 'true'),
+            # ('params_file', nav2_params)
         ],
     )
 
     robot_spawn = IncludeLaunchDescription(
         PythonLaunchDescriptionSource([robot_spawn_launch]),
         launch_arguments=[
+            ('emulate_tty', 'true'),
             ('namespace', LaunchConfiguration('namespace')),
+            ('model', 'lite'),
             ('rviz', LaunchConfiguration('rviz')),
             ('slam', LaunchConfiguration('slam')),
             ('nav2', LaunchConfiguration('nav2')),
             ('x', LaunchConfiguration('x')),
             ('y', LaunchConfiguration('y')),
             ('z', LaunchConfiguration('z')),
-            ('yaw', LaunchConfiguration('yaw'))]
+            ('yaw', LaunchConfiguration('yaw')),
+            # ('params_file', nav2_params)
+        ]
     )
 
 

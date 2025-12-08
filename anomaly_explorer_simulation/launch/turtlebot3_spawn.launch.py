@@ -89,9 +89,9 @@ def generate_launch_description():
         PythonLaunchDescriptionSource(
             os.path.join(pkg_turtlebot3_gazebo, 'launch', 'robot_state_publisher.launch.py')
         ),
-        launch_arguments={
-            'use_sim_time': use_sim_time
-        }.items()
+        launch_arguments=[
+            ('use_sim_time', use_sim_time)
+        ]
     )
 
     bridge_params = os.path.join(
