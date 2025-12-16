@@ -17,10 +17,16 @@ import os
 from ament_index_python.packages import get_package_share_directory
 
 from launch import LaunchDescription
-from launch.actions import IncludeLaunchDescription, TimerAction
+from launch.actions import IncludeLaunchDescription, TimerAction, DeclareLaunchArgument
 from launch.launch_description_sources import PythonLaunchDescriptionSource
 from launch_ros.actions import Node
-from launch.substitutions import PathJoinSubstitution
+from launch.substitutions import PathJoinSubstitution, LaunchConfiguration, PythonExpression
+
+
+ARGUMENTS = [
+    DeclareLaunchArgument('x', default_value='0.0'),
+    DeclareLaunchArgument('y', default_value='0.0')
+]
 
 
 def generate_launch_description():
@@ -56,7 +62,10 @@ def generate_launch_description():
             name='explore_action_node',
             emulate_tty='true',
             output='screen',
-            parameters=[])
+            parameters=[{
+                'x': PythonExpression(['float("', LaunchConfiguration('x'), '")']),
+                'y': PythonExpression(['float("', LaunchConfiguration('y'), '")']),
+            }])
     ])
 
     investigate_cmd = TimerAction(period=5.0, actions=[
@@ -70,7 +79,7 @@ def generate_launch_description():
     ])
 
 
-    ld = LaunchDescription()
+    ld = LaunchDescription(ARGUMENTS)
 
     ld.add_action(plansys2_cmd)
     ld.add_action(simulation_cmd)

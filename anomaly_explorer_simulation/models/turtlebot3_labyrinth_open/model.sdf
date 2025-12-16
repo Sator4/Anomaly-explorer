@@ -1,0 +1,22 @@
+<?xml version="1.0"?>
+<sdf version="1.5">
+  <model name="turtlebot3_labyrinth_openl">
+    <static>true</static>    <!-- true for non-movable objects -->
+    <link name="link">
+      <visual name="visual">
+        <geometry>
+          <mesh>
+            <uri>model://turtlebot3_labyrinth_open/meshes/labyrinth_open.glb</uri>
+          </mesh>
+        </geometry>
+      </visual>
+      <collision name="collision">
+        <geometry>
+          <mesh>
+            <uri>model://turtlebot3_labyrinth_open/meshes/labyrinth_open.glb</uri>
+          </mesh>
+        </geometry>
+      </collision>
+    </link>
+  </model>
+</sdf>

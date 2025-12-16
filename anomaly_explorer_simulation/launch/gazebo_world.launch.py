@@ -24,7 +24,7 @@ from launch import LaunchDescription
 from launch.actions import DeclareLaunchArgument
 from launch.actions import IncludeLaunchDescription, SetEnvironmentVariable
 from launch.launch_description_sources import PythonLaunchDescriptionSource
-from launch.substitutions import LaunchConfiguration, PathJoinSubstitution
+from launch.substitutions import LaunchConfiguration, PathJoinSubstitution, PythonExpression
 from launch_ros.actions import Node
 
 
@@ -64,6 +64,8 @@ def generate_launch_description():
     gz_sim_launch = PathJoinSubstitution([pkg_ros_gz_sim, 'launch', 'gz_sim.launch.py'])
     nav2_params = LaunchConfiguration('params_file')
 
+    world_type = 'labyrinth'
+
     # Gazebo harmonic
     gazebo = IncludeLaunchDescription(
         PythonLaunchDescriptionSource([gz_sim_launch]),
@@ -77,7 +79,7 @@ def generate_launch_description():
                 PathJoinSubstitution([
                     pkg_anomaly_explorer_sim,
                     'config',
-                    'labyrinth_small.config'
+                    f'{world_type}.config'
                 ])
             ])
         ]

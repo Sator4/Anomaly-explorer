@@ -1,3 +1,0 @@
-Instantiated with filepath=None->None, scale=[8.571579933166504, 8.571579933166504, 6.857264518737793], mesh=<bpy_struct, Mesh("Plane") at 0x7f0dcccdc008>, meshname=Plane, material=None, mesh_orientation=None, {}
-->trying export of <bpy_struct, Mesh("Plane") at 0x7f0dcccdc008> to /media/sator/Windows 10/STORAGE/Blender Workspace/For gazebo/labyrinth/unnamed/meshes/stl/Plane.stl
-->wrote stl to /media/sator/Windows 10/STORAGE/Blender Workspace/For gazebo/labyrinth/unnamed/meshes/stl/Plane.stl from bpy_types.Mesh

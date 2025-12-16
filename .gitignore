@@ -3,4 +3,4 @@ build
 install
 log
 files
-# .clang-format
+anomaly_explorer_py/anomaly_explorer_py/__pycache__

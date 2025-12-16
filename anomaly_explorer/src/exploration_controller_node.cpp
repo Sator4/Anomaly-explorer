@@ -13,8 +13,10 @@
 // limitations under the License.
 
 #include <memory>
+#include <rclcpp/utilities.hpp>
 #include <string>
 #include <map>
+#include <utility>
 
 #include "plansys2_msgs/msg/action_execution_info.hpp"
 #include "plansys2_pddl_parser/Utils.hpp"
@@ -62,6 +64,11 @@ public:
 		} break;
 
 		case PLANNING: {
+			if (problem_expert_->isGoalSatisfied(problem_expert_->getGoal())){
+				std::cout << "Mission accomplished." << std::endl;
+				rclcpp::shutdown();
+				return;
+			}
 			last_message.clear();
 			auto domain = domain_expert_->getDomain();
 			auto problem = problem_expert_->getProblem();
@@ -77,32 +84,35 @@ public:
 		} break;
 
 		case EXECUTING: {
-			executor_client_->execute_and_check_plan();
+			auto plan_status = executor_client_->execute_and_check_plan();
+			if (!plan_status) {
+				auto result = executor_client_->getResult();
+				std::cout << "Plan ended with " << (result.has_value() && result.value().success ? "success" : "failure") << std::endl;
+				state_ = PLANNING;
+				return;
+			};
+
 			auto feedback = executor_client_->getFeedBack();
 
 			for (const auto& feedback : feedback.action_execution_status) {
-				// std::cout << feedback.action << " <" << std::to_string(feedback.status) << "> " << feedback.completion * 100.0 << "% | ";
-				if (feedback.status == ActionExecutionInfo::EXECUTING) {
-					// std::cout << last_message[feedback.action] << " | " << feedback.completion << std::endl;
-					if (
-						last_message.find(feedback.action) == last_message.end() || 
-						last_message[feedback.action] != feedback.completion
-					){
-						last_message[feedback.action] = feedback.completion;
-						std::cout << feedback.action << " " << feedback.completion * 100.0 << "%" << std::endl;
+				// std::cout << feedback.action << " \"" << feedback.message_status << "\" " << feedback.completion * 100.0 << "% | ";
+				if (
+					last_message.find(feedback.action) == last_message.end() || 
+					last_message[feedback.action] != std::pair<double, std::string>{feedback.completion, feedback.message_status}
+
+				){
+					last_message[feedback.action] = std::pair<double, std::string>{feedback.completion, feedback.message_status};
+					std::cout << feedback.action << " " << feedback.completion * 100.0 << "%, status: " << feedback.message_status << std::endl;
+				}
+				if (feedback.action == "explore" && feedback.message_status == ExplorationStatus::ANOMALY_FOUND) {
+					plansys2::Predicate anomaly_pred("(anomaly_detected an_pos)");
+					if (problem_expert_->existPredicate(anomaly_pred)){
+						continue;
 					}
-					if (feedback.action == "explore" && feedback.message_status == ExplorationStatus::ANOMALY_FOUND) {
-						std::cout << "Anomaly found" << std::endl;
-						executor_client_->cancel_plan_execution();
-						problem_expert_->addPredicate(plansys2::Predicate("(anomaly_detected an_pos)"));
-						state_ = PLANNING;
-						return;
-					} else if (feedback.action == "investigate") {
-						if (feedback.message_status == ExplorationStatus::FINISHED_INVESTIGATING) {
-							std::cout << "Investigation finished" << std::endl;
-							state_ = PLANNING;
-						}
-					}
+					executor_client_->cancel_plan_execution();
+					problem_expert_->addPredicate(plansys2::Predicate("(anomaly_detected an_pos)"));
+					state_ = PLANNING;
+					return;
 				}
 			}
 			// std::cout << std::endl;
@@ -125,7 +135,7 @@ private:
 	std::shared_ptr<plansys2::ProblemExpertClient> problem_expert_;
 	std::shared_ptr<plansys2::ExecutorClient> executor_client_;
 
-	std::map<std::string, double> last_message;
+	std::map<std::string, std::pair<double, std::string>> last_message;
 };
 
 int main(int argc, char** argv)
